@@ -3,11 +3,13 @@ import { NgModule } from '@angular/core';
 
 
 import { AppComponent } from './app.component';
+import { TimeAgoPipe } from './time-ago.pipe';
 
 
 @NgModule({
   declarations: [
-    AppComponent
+    AppComponent,
+    TimeAgoPipe
   ],
   imports: [
     BrowserModule
