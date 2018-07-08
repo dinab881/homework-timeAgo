@@ -1,16 +1,69 @@
-import { Pipe, PipeTransform } from '@angular/core';
+import {Pipe, PipeTransform, OnDestroy, ChangeDetectorRef} from '@angular/core';
+import {Observable, Observer} from 'rxjs';
+import {map, distinctUntilChanged} from 'rxjs/operators';
 
 @Pipe({
   name: 'timeAgo',
   pure: false
 })
-export class TimeAgoPipe implements PipeTransform {
+export class TimeAgoPipe implements PipeTransform, OnDestroy {
 
-  transform(value: Date, args?: any): string {
+  private subscription: any;
+  private cachedResult: string = null;
+  private cachedInputDate: Date;
 
-    let d = (new Date().getTime() - new Date(value).getTime())/1000;
+  constructor(private _ref: ChangeDetectorRef) {
 
-    return `${d} seconds ago`;
+  }
+
+
+  transform(inputDate: Date, args?: any): any {
+
+    if (inputDate !== this.cachedInputDate) {
+
+      this.cachedResult = null;
+      this.cachedInputDate = inputDate;
+
+      this.subscription = Observable.interval(1000).pipe(
+        map(() => {
+          return this.countResult((Math.abs(new Date().getTime() - new Date(inputDate).getTime())) / 1000)
+      }), distinctUntilChanged()
+      ).subscribe((value) => {
+
+        this.cachedResult = value;
+        this._ref.markForCheck();
+
+      });
+    }
+
+
+    return this.cachedResult;
+
+  }
+
+  countResult(delta: number) {
+
+    let result: string;
+    if (delta < 10) {
+      result = 'now';
+    } else if (delta < 60) { // sent in last minute
+      result = Math.floor(delta) + ' seconds ago';
+    } else if (delta < 3600) { // sent in last hour
+      result = Math.floor(delta / 60) + ' minutes ago';
+    } else if (delta < 86400) { // sent on last day
+      result = Math.floor(delta / 3600) + ' hours ago';
+    } else { // sent more than one day ago
+      result = Math.floor(delta / 86400) + ' days ago';
+    }
+
+
+    return 'Sent ' + result;
+
+  }
+
+
+  ngOnDestroy() {
+    this.subscription.unsubscribe();
   }
 
 }
